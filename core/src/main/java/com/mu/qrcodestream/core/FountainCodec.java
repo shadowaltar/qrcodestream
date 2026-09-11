@@ -24,6 +24,12 @@ final class FountainCodec {
     }
 
     int[] neighbors(long blockCode) {
+        // Systematic prefix: the first K block codes are the raw source blocks, so the receiver
+        // solves one block per frame and progress is linear from the very start.
+        if (blockCode >= 0 && blockCode < sourceBlocks) {
+            return new int[] {(int) blockCode};
+        }
+
         Random random = new Random(mix(blockCode));
         int degree = distribution.sampleDegree(random);
         int[] result = new int[degree];

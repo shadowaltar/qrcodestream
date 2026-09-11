@@ -87,6 +87,25 @@ class FountainRoundTripTest {
     }
 
     @Test
+    void firstSourceBlocksAreSystematic() {
+        byte[] file = randomBytes(50_000, 7);
+        FountainEncoder encoder =
+                FountainEncoder.forFile(file, Protocol.DEFAULT_CHUNK_LEN, Protocol.DEFAULT_REDUNDANCY);
+        Frame first = Protocol.parseFrame(encoder.frameAt(0));
+        FountainDecoder decoder = new FountainDecoder(first.getChunkLen(), first.getTotal());
+
+        int sourceBlocks = encoder.sourceBlockCount();
+        for (int i = 0; i < sourceBlocks; i++) {
+            decoder.add(Protocol.parseFrame(encoder.frameAt(i)));
+        }
+
+        assertTrue(decoder.isComplete(), "the first K frames should solve every block directly");
+        Envelope envelope = Protocol.parseEnvelope(new String(decoder.payload()));
+        assertArrayEquals(file, envelope.getData());
+        assertTrue(envelope.verify());
+    }
+
+    @Test
     void wrongParametersRejected() {
         FountainEncoder encoder =
                 FountainEncoder.forFile(randomBytes(5000, 5), Protocol.DEFAULT_CHUNK_LEN, 2.0);

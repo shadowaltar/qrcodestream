@@ -1,14 +1,22 @@
 package com.mu.qrcodestream.core;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 /**
- * LT-fountain decoder. Feed decoded frames in any order, with any losses; once slightly
- * more than the number of source blocks have been received, the payload is recovered.
+ * LT-fountain decoder. Feed decoded frames in any order, with any losses; once enough distinct
+ * frames have arrived, the payload is recovered.
+ *
+ * <p>Uses a ripple/belief-propagation update: each pending frame is indexed by the source blocks
+ * it still references, so solving one block only touches the frames that contain it. This is
+ * O(total neighbours) overall rather than rescanning every pending frame per received frame,
+ * which matters for large files (large K).
  */
 public final class FountainDecoder {
 
@@ -19,15 +27,19 @@ public final class FountainDecoder {
     private final byte[][] solved;
     private final boolean[] hasSolved;
     private final Set<Long> seen = new HashSet<>();
-    private final List<Pending> pending = new ArrayList<>();
+    private final List<Pending>[] adjacency;
+    private final Deque<Pending> ready = new ArrayDeque<>();
     private int solvedCount;
 
     private static final class Pending {
         int[] indices;
         byte[] data;
+        int unsolved;
         boolean done;
+        boolean queued;
     }
 
+    @SuppressWarnings("unchecked")
     public FountainDecoder(int chunkLen, int total) {
         if (chunkLen <= 0 || total < 0) {
             throw new IllegalArgumentException("invalid chunkLen/total");
@@ -38,6 +50,10 @@ public final class FountainDecoder {
         this.codec = new FountainCodec(sourceBlockCount);
         this.solved = new byte[sourceBlockCount][];
         this.hasSolved = new boolean[sourceBlockCount];
+        this.adjacency = new List[sourceBlockCount];
+        for (int i = 0; i < sourceBlockCount; i++) {
+            adjacency[i] = new ArrayList<>();
+        }
     }
 
     /** Returns {@code true} if the frame was accepted (it is a new, matching frame). */
@@ -54,62 +70,66 @@ public final class FountainDecoder {
 
         int[] neighbors = codec.neighbors(frame.getBlockCode());
         byte[] data = frame.getData().clone();
-        List<Integer> unknown = new ArrayList<>(neighbors.length);
+        int[] unsolvedIndices = new int[neighbors.length];
+        int unknown = 0;
         for (int index : neighbors) {
             if (hasSolved[index]) {
                 xor(data, solved[index]);
             } else {
-                unknown.add(index);
+                unsolvedIndices[unknown++] = index;
             }
         }
-        if (unknown.isEmpty()) {
+        if (unknown == 0) {
             return true;
         }
 
         Pending block = new Pending();
-        block.indices = new int[unknown.size()];
-        for (int i = 0; i < unknown.size(); i++) {
-            block.indices[i] = unknown.get(i);
-        }
+        block.indices = Arrays.copyOf(unsolvedIndices, unknown);
         block.data = data;
-        pending.add(block);
-        resolve();
+        block.unsolved = unknown;
+        for (int index : block.indices) {
+            adjacency[index].add(block);
+        }
+        if (unknown == 1) {
+            block.queued = true;
+            ready.add(block);
+        }
+        drainReady();
         return true;
     }
 
-    private void resolve() {
-        boolean progress = true;
-        while (progress) {
-            progress = false;
-            for (Pending block : pending) {
-                if (block.done) {
+    private void drainReady() {
+        while (!ready.isEmpty()) {
+            Pending block = ready.poll();
+            if (block.done) {
+                continue;
+            }
+            int index = -1;
+            for (int candidate : block.indices) {
+                if (!hasSolved[candidate]) {
+                    index = candidate;
+                    break;
+                }
+            }
+            if (index < 0) {
+                block.done = true;
+                continue;
+            }
+
+            solved[index] = block.data;
+            hasSolved[index] = true;
+            solvedCount++;
+            block.done = true;
+
+            for (Pending neighbor : adjacency[index]) {
+                if (neighbor.done) {
                     continue;
                 }
-                int unknownCount = 0;
-                int unknownIndex = -1;
-                for (int index : block.indices) {
-                    if (!hasSolved[index]) {
-                        unknownCount++;
-                        unknownIndex = index;
-                        if (unknownCount > 1) {
-                            break;
-                        }
-                    }
-                }
-                if (unknownCount == 0) {
-                    block.done = true;
-                } else if (unknownCount == 1) {
-                    byte[] value = block.data.clone();
-                    for (int index : block.indices) {
-                        if (index != unknownIndex) {
-                            xor(value, solved[index]);
-                        }
-                    }
-                    solved[unknownIndex] = value;
-                    hasSolved[unknownIndex] = true;
-                    solvedCount++;
-                    block.done = true;
-                    progress = true;
+                xor(neighbor.data, solved[index]);
+                neighbor.unsolved--;
+                if (neighbor.unsolved == 1 && !neighbor.queued) {
+                    neighbor.queued = true;
+                    ready.add(neighbor);
                 }
             }
         }

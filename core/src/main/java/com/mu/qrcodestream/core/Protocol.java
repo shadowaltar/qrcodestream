@@ -26,8 +26,8 @@ public final class Protocol {
     /** QR bytes per frame. TXQR's best measured value. */
     public static final int DEFAULT_CHUNK_LEN = 1850;
 
-    /** TXQR default redundancy factor. */
-    public static final double DEFAULT_REDUNDANCY = 2.0;
+    /** Fountain redundancy factor (systematic prefix makes K frames enough when lossless). */
+    public static final double DEFAULT_REDUNDANCY = 2.5;
 
     /** Emitter default frame rate. */
     public static final int DEFAULT_FPS = 15;

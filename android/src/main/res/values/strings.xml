@@ -4,6 +4,16 @@
 
     <string name="start">Start</string>
     <string name="path_placeholder">/storage/emulated/0/Download/00000000000000.capture</string>
+    <string name="queue_label">Decode buffer: %1$d frames</string>
+    <string name="queue_label_default">Decode buffer: 64 frames</string>
+    <string name="resolution_label">Camera resolution</string>
+
+    <string-array name="resolution_labels">
+        <item>Auto (device default)</item>
+        <item>480p (640×480)</item>
+        <item>720p (1280×720)</item>
+        <item>1080p (1920×1080)</item>
+    </string-array>
 
     <string name="scanning">Scanning…</string>
     <string name="status_done">Done</string>

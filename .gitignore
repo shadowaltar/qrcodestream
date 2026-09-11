@@ -10,3 +10,7 @@ captures/
 *.aab
 *.zip
 *.7z
+keystore.properties
+keystore/
+*.jks
+*.keystore

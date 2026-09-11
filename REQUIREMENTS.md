@@ -208,7 +208,7 @@ interactive UI.
 | Input file | OS file dialog | `--input` pre-selects; required only in headless mode |
 | QR version | **20** (range 10–40) | UI slider; sets `chunkLen` to the version's byte capacity |
 | Chunk length (`chunkLen`) | derived from QR version | Headless default **1850** |
-| Redundancy factor | **2.0** | TXQR default |
+| Redundancy factor | **2.5** | Tuned for the systematic prefix; K frames suffice when lossless |
 | Frame rate | **15 FPS** (range 10–25) | UI slider |
 | QR error-correction level | **L** | TXQR best-tested; max density |
 | Loop/stream behavior | Loop generated frames | Infinite until stopped |

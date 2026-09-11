@@ -2,6 +2,12 @@ plugins {
     id 'com.android.application'
 }
 
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace 'com.mu.qrcodestreamclient'
     compileSdk 35
@@ -14,9 +20,21 @@ android {
         versionName '1.0'
     }
 
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -34,6 +52,7 @@ android {
 dependencies {
     implementation project(':core')
     implementation 'com.google.zxing:core:3.5.3'
+    implementation 'com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1'
 
     def cameraxVersion = '1.4.1'
     implementation "androidx.camera:camera-core:$cameraxVersion"

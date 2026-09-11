@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -30,6 +31,11 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSIONS = 100;
     private static final long TICK_INTERVAL_MS = 1000L;
 
+    /** Mirrors {@code R.array.resolution_labels}: width/height, or 0/0 for the device default. */
+    private static final int[][] TARGET_RESOLUTIONS = {
+        {0, 0}, {640, 480}, {1280, 720}, {1920, 1080}
+    };
+
     private ActivityMainBinding binding;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -50,6 +56,21 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         binding.startButton.setOnClickListener(v -> onStartClicked());
+
+        binding.queueSlider.setValue(CaptureActivity.DEFAULT_DECODE_QUEUE_MAX);
+        updateQueueLabel((int) binding.queueSlider.getValue());
+        binding.queueSlider.addOnChangeListener(
+                (slider, value, fromUser) -> updateQueueLabel((int) value));
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this, R.array.resolution_labels, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        binding.resolutionSpinner.setAdapter(adapter);
+        binding.resolutionSpinner.setSelection(2);
+    }
+
+    private void updateQueueLabel(int frames) {
+        binding.queueLabel.setText(getString(R.string.queue_label, frames));
     }
 
     @Override
@@ -103,6 +124,11 @@ public class MainActivity extends AppCompatActivity {
     private void launchCapture() {
         Intent intent = new Intent(this, CaptureActivity.class);
         intent.putExtra(CaptureActivity.EXTRA_FILE_NAME, pendingFileName);
+        intent.putExtra(CaptureActivity.EXTRA_QUEUE_MAX, (int) binding.queueSlider.getValue());
+        int position = binding.resolutionSpinner.getSelectedItemPosition();
+        int[] size = TARGET_RESOLUTIONS[Math.max(0, Math.min(TARGET_RESOLUTIONS.length - 1, position))];
+        intent.putExtra(CaptureActivity.EXTRA_TARGET_WIDTH, size[0]);
+        intent.putExtra(CaptureActivity.EXTRA_TARGET_HEIGHT, size[1]);
         startActivity(intent);
     }
 
