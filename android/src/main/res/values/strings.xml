@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QRCodeStreamClient</string>
+
+    <string name="start">Start</string>
+    <string name="path_placeholder">/storage/emulated/0/Download/00000000000000.capture</string>
+
+    <string name="scanning">Scanning…</string>
+    <string name="status_done">Done</string>
+    <string name="status_error">Error</string>
+
+    <string name="retry">Retry</string>
+    <string name="retry_scan">Retry scan</string>
+    <string name="retry_save">Retry save</string>
+    <string name="back_to_start">Back to Start</string>
+    <string name="cancel">Cancel</string>
+    <string name="open_settings">Open settings</string>
+
+    <string name="permission_denied_title">Permission required</string>
+    <string name="permission_denied_message">Camera access (and, on Android 9 and below, storage access) is required to capture the QR stream. Grant the permission, or open system settings and allow it, then try again.</string>
+
+    <string name="camera_permission_missing">Camera permission is not granted.</string>
+    <string name="camera_error">Camera error: %1$s</string>
+    <string name="integrity_error">Integrity verification failed: %1$s</string>
+    <string name="integrity_mismatch">payload length or SHA-256 mismatch</string>
+    <string name="write_error">Could not save file: %1$s</string>
+    <string name="saved_to">Saved to %1$s</string>
+
+    <string name="progress_format">Frames: %1$d  Solved: %2$d/%3$d  %4$d%%</string>
+</resources>
